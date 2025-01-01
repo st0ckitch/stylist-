@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon } from 'lucide-react'
+import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Settings, User } from 'lucide-react'
 
 type WebcamRef = Webcam & {
   getScreenshot: () => string | null
@@ -38,21 +38,37 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 animated-gradient">
-      <div className="max-w-7xl mx-auto p-4 lg:p-8 min-h-screen flex flex-col">
-        {/* Header */}
-        <header className="text-center mb-8 lg:mb-12">
-          <h1 className="text-4xl lg:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 mb-3">
-            Style Assistant
-          </h1>
-          <p className="text-gray-600 text-lg">Capture your look for personalized fashion advice</p>
-        </header>
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex-shrink-0">
+              <h1 className="text-xl font-semibold text-gray-900">Style Assistant</h1>
+            </div>
+            <div className="flex items-center space-x-4">
+              <button
+                type="button"
+                className="p-2 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
+              >
+                <Settings size={20} />
+              </button>
+              <button
+                type="button"
+                className="p-2 rounded-full text-gray-500 hover:text-gray-600 hover:bg-gray-100 focus:outline-none"
+              >
+                <User size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
 
-        {/* Main Content */}
-        <div className="flex-1 flex flex-col lg:flex-row lg:items-start lg:gap-12">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row lg:items-start lg:gap-12">
           {/* Camera/Image Section */}
           <div className="flex-1 lg:max-w-2xl">
-            <div className="relative rounded-3xl overflow-hidden bg-white shadow-xl ring-1 ring-gray-100">
+            <div className="relative rounded-2xl overflow-hidden bg-white shadow-lg">
               {!image ? (
                 <div className="relative aspect-[4/5] lg:aspect-[4/3]">
                   <Webcam
@@ -114,7 +130,7 @@ export default function Home() {
                     setImage(null)
                     setAdvice('')
                   }}
-                  className="flex-1 py-4 px-6 rounded-2xl bg-white hover:bg-gray-50 text-gray-700 font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  className="flex-1 py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200"
                   type="button"
                 >
                   <RefreshCw size={20} />
@@ -123,7 +139,7 @@ export default function Home() {
                 <button
                   onClick={analyzeImage}
                   disabled={loading}
-                  className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg button-shine"
+                  className="flex-1 py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
                   type="button"
                 >
                   {loading ? (
@@ -141,7 +157,7 @@ export default function Home() {
               </div>
               
               {advice && (
-                <div className="p-6 rounded-2xl bg-white shadow-xl ring-1 ring-gray-100">
+                <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
                   <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
                     <Wand2 className="text-blue-500" />
                     Style Advice
@@ -152,7 +168,7 @@ export default function Home() {
             </div>
           </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </div>
   )
 }
