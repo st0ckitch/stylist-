@@ -2,22 +2,59 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  background: #f1f5f9;
+@layer base {
+  body {
+    @apply bg-gradient-to-b from-blue-50 via-white to-indigo-50 min-h-screen;
+  }
+}
+
+.glassmorphism {
+  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
 }
 
 .webcam-lighting {
   filter: brightness(1.5) contrast(1.2) saturate(1.1);
 }
 
-.button-glass {
-  background: rgba(255, 255, 255, 0.2);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
+.animated-gradient {
+  background: linear-gradient(-45deg, #3b82f6, #6366f1, #0ea5e9, #6366f1);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
 }
 
-.button-glass:hover {
-  background: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.hover-scale {
+  @apply transition-all duration-300 hover:scale-[1.02];
+}
+
+.button-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
 }
