@@ -7,19 +7,32 @@ const anthropic = new Anthropic({
 
 export async function POST(req: Request) {
   try {
-    const { image } = await req.json()
+    const body = await req.json()
+    
+    // Remove data:image prefix if present
+    const imageData = body.image.replace(/^data:image\/\w+;base64,/, '')
     
     const completion = await anthropic.messages.create({
       max_tokens: 1024,
       messages: [{
         role: "user",
-        content: `Analyze this image of a person's outfit and provide style advice in Georgian language. Be specific about improvements and suggestions: ${image}`
+        content: [{
+          type: "image",
+          source: {
+            type: "base64",
+            media_type: "image/jpeg",
+            data: imageData
+          }
+        }, {
+          type: "text",
+          text: "მოცემული ფოტოსთვის გამიწიე რეკომენდაცია ჩაცმულობის შესახებ. გააანალიზე რა აცვია და რა შეიძლება გამოასწოროს."
+        }]
       }],
       model: "claude-3-opus-20240229",
     })
 
     return NextResponse.json({ 
-      advice: completion.content[0].text 
+      advice: completion.messages[0].content[0].text 
     })
     
   } catch (error) {
