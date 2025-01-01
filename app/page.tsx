@@ -7,6 +7,7 @@ export default function Home() {
   const [image, setImage] = useState<string | null>(null)
   const [advice, setAdvice] = useState<string>('')
   const [loading, setLoading] = useState(false)
+  const [torchOn, setTorchOn] = useState(false)
   const webcamRef = useRef<Webcam | null>(null)
 
   const capture = () => {
@@ -32,30 +33,37 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen p-4">
+    <main className="min-h-screen p-4 bg-black">
       <div className="max-w-md mx-auto pt-8">
         <h1 className="text-3xl font-bold text-center mb-2 text-white">
           Style Assistant
         </h1>
         <p className="text-zinc-400 text-center mb-8">Capture your look, get personalized advice</p>
         
-        <div className="webcam-container">
+        <div className="bg-zinc-900 rounded-2xl overflow-hidden border border-zinc-800">
           <div className="relative">
             {!image ? (
               <>
                 <Webcam
                   ref={webcamRef}
                   screenshotFormat="image/jpeg"
-                  className="w-full aspect-[3/4] object-cover"
+                  className={`w-full aspect-[3/4] object-cover ${torchOn ? 'webcam-lighting' : ''}`}
                   videoConstraints={{
                     facingMode: 'user',
                     aspectRatio: 3/4,
+                    brightness: 1.5,
+                    contrast: 1.2
                   }}
                 />
-                <div className="camera-overlay absolute inset-0" />
+                <button
+                  onClick={() => setTorchOn(!torchOn)}
+                  className="absolute top-4 right-4 p-3 rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+                >
+                  <SunMedium className={`${torchOn ? 'text-yellow-400' : 'text-white'}`} />
+                </button>
                 <button
                   onClick={capture}
-                  className="button-glass absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full flex items-center gap-2"
+                  className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full flex items-center gap-2 bg-white/10 hover:bg-white/20 transition-all"
                 >
                   <Camera size={24} className="text-white" />
                   <span className="text-white font-medium">Take Photo</span>
@@ -64,7 +72,7 @@ export default function Home() {
             ) : (
               <div>
                 <img src={image} alt="captured" className="w-full aspect-[3/4] object-cover" />
-                <div className="p-4 space-y-4 bg-zinc-900/80 backdrop-blur">
+                <div className="p-4 space-y-4 bg-black/80 backdrop-blur">
                   <div className="flex gap-3">
                     <button
                       onClick={() => {
@@ -79,7 +87,7 @@ export default function Home() {
                     <button
                       onClick={analyzeImage}
                       disabled={loading}
-                      className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl disabled:opacity-50 disabled:hover:bg-white/10 flex items-center justify-center gap-2 transition-colors"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl disabled:opacity-50 disabled:hover:bg-blue-600 flex items-center justify-center gap-2 transition-colors"
                     >
                       <Wand2 size={20} className={loading ? 'animate-spin' : ''} />
                       {loading ? 'Analyzing...' : 'Get Advice'}
