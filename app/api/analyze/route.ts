@@ -8,8 +8,6 @@ const anthropic = new Anthropic({
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    
-    // Remove data:image prefix if present
     const imageData = body.image.replace(/^data:image\/\w+;base64,/, '')
     
     const completion = await anthropic.messages.create({
@@ -32,7 +30,7 @@ export async function POST(req: Request) {
     })
 
     return NextResponse.json({ 
-      advice: completion.messages[0].content[0].text 
+      advice: completion.content[0].text 
     })
     
   } catch (error) {
