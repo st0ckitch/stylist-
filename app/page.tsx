@@ -51,8 +51,8 @@ export default function Home() {
                   videoConstraints={{
                     facingMode: 'user',
                     aspectRatio: 3/4,
-                    brightness: 1.5,
-                    contrast: 1.2
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
                   }}
                 />
                 <button
