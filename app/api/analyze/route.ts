@@ -10,27 +10,30 @@ export async function POST(req: Request) {
     const body = await req.json()
     const imageData = body.image.replace(/^data:image\/\w+;base64,/, '')
     
-    const completion = await anthropic.messages.create({
+    const message = await anthropic.messages.create({
+      model: "claude-3-5-sonnet-20241022",
       max_tokens: 1024,
       messages: [{
         role: "user",
-        content: [{
-          type: "image",
-          source: {
-            type: "base64",
-            media_type: "image/jpeg",
-            data: imageData
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/jpeg",
+              data: imageData
+            }
+          },
+          {
+            type: "text",
+            text: "მოცემული ფოტოსთვის გამიწიე რეკომენდაცია ჩაცმულობის შესახებ. გააანალიზე რა აცვია და რა შეიძლება გამოასწოროს."
           }
-        }, {
-          type: "text",
-          text: "მოცემული ფოტოსთვის გამიწიე რეკომენდაცია ჩაცმულობის შესახებ. გააანალიზე რა აცვია და რა შეიძლება გამოასწოროს."
-        }]
-      }],
-      model: "claude-3-opus-20240229",
+        ]
+      }]
     })
 
     return NextResponse.json({ 
-      advice: completion.content[0].text 
+      advice: message.content[0].text 
     })
     
   } catch (error) {
