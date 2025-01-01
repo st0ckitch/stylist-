@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  experimental: {
-    missingSuspenseWithCSRWarning: false
-  }
+  // Empty config, remove experimental flags
 }
 
 module.exports = nextConfig
