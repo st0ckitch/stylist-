@@ -1,25 +1,59 @@
-import './globals.css'
-import { Inter } from 'next/font/google'
-import type { Metadata } from 'next'
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-const inter = Inter({ subsets: ['latin'] })
-
-export const metadata: Metadata = {
-  title: 'Style Assistant',
-  description: 'AI-powered fashion styling recommendations',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
+/* Base styles */
+:root {
+  --foreground-rgb: 255, 255, 255;
+  --background-start-rgb: 0, 0, 0;
+  --background-end-rgb: 0, 0, 0;
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
-  return (
-    <html lang="en" className="h-full">
-      <body className={`${inter.className} antialiased h-full`}>
-        {children}
-      </body>
-    </html>
-  )
+/* Custom utilities */
+.webcam-lighting {
+  filter: brightness(1.5) contrast(1.2) saturate(1.1);
+}
+
+/* Animation keyframes */
+@keyframes gradient {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Custom classes */
+.button-shine {
+  position: relative;
+  overflow: hidden;
+}
+
+.button-shine::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent,
+    rgba(255, 255, 255, 0.1),
+    transparent
+  );
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
+}
+
+@keyframes shine {
+  0% { transform: translateX(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) rotate(45deg); }
+}
+
+/* Utility classes */
+@layer utilities {
+  .animated-gradient {
+    background: linear-gradient(-45deg, #3b82f6, #6366f1, #0ea5e9, #6366f1);
+    background-size: 400% 400%;
+    animation: gradient 15s ease infinite;
+  }
 }
