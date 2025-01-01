@@ -4,12 +4,16 @@ import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
 import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon } from 'lucide-react'
 
+type WebcamRef = Webcam & {
+  getScreenshot: () => string | null
+}
+
 export default function Home() {
-  const [image, setImage] = useState(null)
-  const [advice, setAdvice] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [torchOn, setTorchOn] = useState(false)
-  const webcamRef = useRef(null)
+  const [image, setImage] = useState<string | null>(null)
+  const [advice, setAdvice] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(false)
+  const [torchOn, setTorchOn] = useState<boolean>(false)
+  const webcamRef = useRef<WebcamRef | null>(null)
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot()
@@ -74,6 +78,7 @@ export default function Home() {
                             ? 'bg-yellow-500 text-white shadow-lg' 
                             : 'bg-gray-800/30 text-white backdrop-blur-md hover:bg-gray-800/40'
                         }`}
+                        type="button"
                       >
                         {torchOn ? <Sun size={24} /> : <Moon size={24} />}
                       </button>
@@ -81,6 +86,7 @@ export default function Home() {
                       <button
                         onClick={capture}
                         className="w-20 h-20 rounded-full border-4 border-white bg-blue-500 hover:bg-blue-600 text-white shadow-lg transform hover:scale-105 transition-all flex items-center justify-center"
+                        type="button"
                       >
                         <Camera size={32} />
                       </button>
@@ -109,6 +115,7 @@ export default function Home() {
                     setAdvice('')
                   }}
                   className="flex-1 py-4 px-6 rounded-2xl bg-white hover:bg-gray-50 text-gray-700 font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2"
+                  type="button"
                 >
                   <RefreshCw size={20} />
                   <span>Retake</span>
@@ -117,6 +124,7 @@ export default function Home() {
                   onClick={analyzeImage}
                   disabled={loading}
                   className="flex-1 py-4 px-6 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 text-white font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg button-shine"
+                  type="button"
                 >
                   {loading ? (
                     <>
