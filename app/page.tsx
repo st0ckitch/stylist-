@@ -1,7 +1,9 @@
 'use client'
 import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, RefreshCw, Wand2, SunMedium } from 'lucide-react'
+import { Wand2 } from 'lucide-react'
+import { CameraView } from '@/components/camera/camera-view'
+import { Button } from '@/components/ui/button'
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null)
@@ -43,59 +45,44 @@ export default function Home() {
         <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
           <div className="relative">
             {!image ? (
-              <>
-                <Webcam
-                  ref={webcamRef}
-                  screenshotFormat="image/jpeg"
-                  className={`w-full aspect-[3/4] object-cover ${torchOn ? 'webcam-lighting' : ''}`}
-                  videoConstraints={{
-                    facingMode: 'user',
-                    aspectRatio: 3/4,
-                    width: { ideal: 1280 },
-                    height: { ideal: 720 }
-                  }}
-                />
-                <button
-                  onClick={() => setTorchOn(!torchOn)}
-                  className={`absolute top-4 right-4 p-3 rounded-full transition-all duration-300 ${
-                    torchOn 
-                      ? 'bg-yellow-400 shadow-lg shadow-yellow-400/50' 
-                      : 'bg-white/80 hover:bg-white/90'
-                  }`}
-                >
-                  <SunMedium className={torchOn ? 'text-white' : 'text-gray-700'} />
-                </button>
-                <button
-                  onClick={capture}
-                  className="absolute bottom-6 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 transition-all duration-300 flex items-center gap-3 shadow-lg shadow-blue-600/30"
-                >
-                  <Camera size={24} className="text-white" />
-                  <span className="text-white font-medium">Take Photo</span>
-                </button>
-              </>
+              <CameraView 
+                webcamRef={webcamRef}
+                torchOn={torchOn}
+                onTorchToggle={() => setTorchOn(!torchOn)}
+                onCapture={capture}
+              />
             ) : (
               <div>
                 <img src={image} alt="captured" className="w-full aspect-[3/4] object-cover" />
                 <div className="p-6 space-y-6">
                   <div className="flex gap-4">
-                    <button
+                    <Button 
+                      variant="outline"
+                      size="lg"
+                      className="flex-1"
                       onClick={() => {
                         setImage(null)
                         setAdvice('')
                       }}
-                      className="flex-1 py-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center gap-2 transition-all duration-300"
                     >
-                      <RefreshCw size={20} className="text-gray-700" />
-                      <span className="text-gray-700 font-medium">Retake</span>
-                    </button>
-                    <button
+                      Retake
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      className="flex-1"
                       onClick={analyzeImage}
                       disabled={loading}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all duration-300"
                     >
-                      <Wand2 size={20} className={loading ? 'animate-spin' : ''} />
-                      {loading ? 'Analyzing...' : 'Get Advice'}
-                    </button>
+                      {loading ? (
+                        <>
+                          <Wand2 size={20} className="animate-spin mr-2" />
+                          Analyzing...
+                        </>
+                      ) : (
+                        'Get Advice'
+                      )}
+                    </Button>
                   </div>
                   
                   {advice && (
