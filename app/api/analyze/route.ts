@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs'
 import Anthropic from '@anthropic-ai/sdk'
 
 const anthropic = new Anthropic({
@@ -6,6 +7,13 @@ const anthropic = new Anthropic({
 })
 
 export async function POST(req: Request) {
+  const { userId } = auth()
+  
+  // Check if user is authenticated
+  if (!userId) {
+    return new NextResponse('Unauthorized', { status: 401 })
+  }
+
   try {
     const body = await req.json()
     const imageData = body.image.replace(/^data:image\/\w+;base64,/, '')
