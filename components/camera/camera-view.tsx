@@ -1,3 +1,5 @@
+'use client'
+
 import { RefObject } from 'react'
 import Webcam from 'react-webcam'
 import { TorchButton } from './torch-button'
@@ -10,7 +12,7 @@ interface CameraViewProps {
   onCapture: () => void
 }
 
-export function CameraView({ webcamRef, torchOn, onTorchToggle, onCapture }: CameraViewProps) {
+export default function CameraView({ webcamRef, torchOn, onTorchToggle, onCapture }: CameraViewProps) {
   return (
     <div className="relative">
       <Webcam
