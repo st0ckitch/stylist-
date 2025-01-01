@@ -33,14 +33,14 @@ export default function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-slate-100 p-4">
+    <main className="min-h-screen bg-gradient-to-b from-blue-50 to-white p-4">
       <div className="max-w-md mx-auto pt-8">
-        <h1 className="text-3xl font-bold text-center mb-2 text-slate-800">
+        <h1 className="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-transparent bg-clip-text">
           Style Assistant
         </h1>
-        <p className="text-slate-600 text-center mb-8">Capture your look, get personalized advice</p>
+        <p className="text-gray-600 text-center mb-8">Capture your look, get personalized advice</p>
         
-        <div className="bg-white rounded-2xl overflow-hidden shadow-xl">
+        <div className="bg-white rounded-3xl overflow-hidden shadow-xl border border-gray-100">
           <div className="relative">
             {!image ? (
               <>
@@ -57,37 +57,41 @@ export default function Home() {
                 />
                 <button
                   onClick={() => setTorchOn(!torchOn)}
-                  className="absolute top-4 right-4 p-3 rounded-full bg-white/80 hover:bg-white/90 transition-colors shadow-lg"
+                  className={`absolute top-4 right-4 p-3 rounded-full transition-all duration-300 ${
+                    torchOn 
+                      ? 'bg-yellow-400 shadow-lg shadow-yellow-400/50' 
+                      : 'bg-white/80 hover:bg-white/90'
+                  }`}
                 >
-                  <SunMedium className={`${torchOn ? 'text-yellow-500' : 'text-slate-700'}`} />
+                  <SunMedium className={torchOn ? 'text-white' : 'text-gray-700'} />
                 </button>
                 <button
                   onClick={capture}
-                  className="absolute bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 rounded-full bg-white shadow-lg hover:bg-slate-50 transition-all flex items-center gap-2"
+                  className="absolute bottom-6 left-1/2 -translate-x-1/2 px-8 py-4 rounded-2xl bg-blue-600 hover:bg-blue-700 transition-all duration-300 flex items-center gap-3 shadow-lg shadow-blue-600/30"
                 >
-                  <Camera size={24} className="text-slate-700" />
-                  <span className="text-slate-700 font-medium">Take Photo</span>
+                  <Camera size={24} className="text-white" />
+                  <span className="text-white font-medium">Take Photo</span>
                 </button>
               </>
             ) : (
               <div>
                 <img src={image} alt="captured" className="w-full aspect-[3/4] object-cover" />
-                <div className="p-4 space-y-4 bg-white border-t">
-                  <div className="flex gap-3">
+                <div className="p-6 space-y-6">
+                  <div className="flex gap-4">
                     <button
                       onClick={() => {
                         setImage(null)
                         setAdvice('')
                       }}
-                      className="flex-1 bg-slate-100 hover:bg-slate-200 py-3 rounded-xl flex items-center justify-center gap-2"
+                      className="flex-1 py-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center gap-2 transition-all duration-300"
                     >
-                      <RefreshCw size={20} className="text-slate-700" />
-                      <span className="text-slate-700 font-medium">Retake</span>
+                      <RefreshCw size={20} className="text-gray-700" />
+                      <span className="text-gray-700 font-medium">Retake</span>
                     </button>
                     <button
                       onClick={analyzeImage}
                       disabled={loading}
-                      className="flex-1 bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-xl disabled:opacity-50 disabled:hover:bg-blue-500 flex items-center justify-center gap-2 transition-colors"
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all duration-300"
                     >
                       <Wand2 size={20} className={loading ? 'animate-spin' : ''} />
                       {loading ? 'Analyzing...' : 'Get Advice'}
@@ -95,9 +99,9 @@ export default function Home() {
                   </div>
                   
                   {advice && (
-                    <div className="pt-4 border-t border-slate-100">
-                      <h2 className="text-lg font-semibold mb-2 text-slate-800">Style Advice:</h2>
-                      <p className="text-slate-600 whitespace-pre-wrap leading-relaxed">{advice}</p>
+                    <div className="pt-4 border-t border-gray-100">
+                      <h2 className="text-xl font-semibold mb-3 text-gray-800">Style Advice</h2>
+                      <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{advice}</p>
                     </div>
                   )}
                 </div>
