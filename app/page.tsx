@@ -1,9 +1,9 @@
 'use client'
+
 import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
 import { Wand2 } from 'lucide-react'
-import { CameraView } from '@/components/camera/camera-view'
-import { Button } from '@/components/ui/button'
+import CameraView from '@/components/camera/camera-view'
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null)
@@ -56,23 +56,19 @@ export default function Home() {
                 <img src={image} alt="captured" className="w-full aspect-[3/4] object-cover" />
                 <div className="p-6 space-y-6">
                   <div className="flex gap-4">
-                    <Button 
-                      variant="outline"
-                      size="lg"
-                      className="flex-1"
+                    <button 
                       onClick={() => {
                         setImage(null)
                         setAdvice('')
                       }}
+                      className="flex-1 py-4 rounded-xl border-2 border-gray-200 hover:border-gray-300 flex items-center justify-center gap-2 transition-all duration-300"
                     >
                       Retake
-                    </Button>
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      className="flex-1"
+                    </button>
+                    <button
                       onClick={analyzeImage}
                       disabled={loading}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white py-4 rounded-xl shadow-lg shadow-blue-600/30 flex items-center justify-center gap-2 transition-all duration-300"
                     >
                       {loading ? (
                         <>
@@ -82,7 +78,7 @@ export default function Home() {
                       ) : (
                         'Get Advice'
                       )}
-                    </Button>
+                    </button>
                   </div>
                   
                   {advice && (
