@@ -2,10 +2,9 @@ import { authMiddleware } from "@clerk/nextjs";
  
 export default authMiddleware({
   publicRoutes: ["/"],
-  protectedRoutes: ["/api/analyze"],
+  // Instead of protectedRoutes, we'll protect everything except public routes
 });
  
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
-  runtime: 'nodejs'
 };
