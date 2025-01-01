@@ -107,7 +107,7 @@ export default function Home() {
                       setImage(null)
                       setAdvice('')
                     }}
-                    className="flex-1 py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-medium transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200"
+                    className="flex-1 py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-light transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200"
                     type="button"
                   >
                     <RefreshCw size={20} />
@@ -116,7 +116,7 @@ export default function Home() {
                   <button
                     onClick={analyzeImage}
                     disabled={loading}
-                    className="flex-1 py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-medium flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
+                    className="flex-1 py-4 px-6 rounded-xl bg-blue-500 hover:bg-blue-600 text-white font-light flex items-center justify-center gap-2 transition-all disabled:opacity-50 shadow-md hover:shadow-lg"
                     type="button"
                   >
                     {loading ? (
@@ -135,11 +135,11 @@ export default function Home() {
                 
                 {advice && (
                   <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-                    <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
                       <Wand2 className="text-blue-500" />
                       Style Advice
                     </h2>
-                    <p className="text-gray-600 leading-relaxed">{advice}</p>
+                    <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
                   </div>
                 )}
               </div>
@@ -149,10 +149,10 @@ export default function Home() {
       </SignedIn>
       <SignedOut>
         <div className="min-h-[80vh] flex flex-col items-center justify-center text-center px-4">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">Welcome to Style Assistant</h2>
-          <p className="text-lg text-gray-600 mb-8">Sign in to get personalized fashion advice</p>
+          <h2 className="text-3xl font-light text-gray-900 mb-4">Welcome to Style Assistant</h2>
+          <p className="text-lg text-gray-600 font-light mb-8">Sign in to get personalized fashion advice</p>
           <SignInButton mode="modal">
-            <button className="rounded-lg bg-blue-500 px-6 py-3 text-white hover:bg-blue-600 transition-colors">
+            <button className="rounded-lg bg-blue-500 px-6 py-3 text-white hover:bg-blue-600 transition-colors font-light">
               Sign in to continue
             </button>
           </SignInButton>
