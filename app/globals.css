@@ -1,60 +1,25 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+import './globals.css'
+import { Inter } from 'next/font/google'
+import type { Metadata } from 'next'
 
-@layer base {
-  body {
-    @apply bg-gradient-to-b from-blue-50 via-white to-indigo-50 min-h-screen;
-  }
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'Style Assistant',
+  description: 'AI-powered fashion styling recommendations',
+  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
 }
 
-.glassmorphism {
-  @apply bg-white/70 backdrop-blur-lg border border-white/20 shadow-xl;
-}
-
-.webcam-lighting {
-  filter: brightness(1.5) contrast(1.2) saturate(1.1);
-}
-
-.animated-gradient {
-  background: linear-gradient(-45deg, #3b82f6, #6366f1, #0ea5e9, #6366f1);
-  background-size: 400% 400%;
-  animation: gradient 15s ease infinite;
-}
-
-@keyframes gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.hover-scale {
-  @apply transition-all duration-300 hover:scale-[1.02];
-}
-
-.button-shine {
-  position: relative;
-  overflow: hidden;
-}
-
-.button-shine::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(
-    45deg,
-    transparent,
-    rgba(255, 255, 255, 0.1),
-    transparent
-  );
-  transform: rotate(45deg);
-  animation: shine 3s infinite;
-}
-
-@keyframes shine {
-  0% { transform: translateX(-100%) rotate(45deg); }
-  100% { transform: translateX(100%) rotate(45deg); }
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang="en" className="h-full">
+      <body className={`${inter.className} antialiased h-full`}>
+        {children}
+      </body>
+    </html>
+  )
 }
