@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 import Anthropic from '@anthropic-ai/sdk'
+import { findProductsByTags } from '@/lib/db'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
@@ -8,11 +9,7 @@ const anthropic = new Anthropic({
 
 export async function POST(req: Request) {
   const { userId } = auth()
-  
-  // Check if user is authenticated
-  if (!userId) {
-    return new NextResponse('Unauthorized', { status: 401 })
-  }
+  if (!userId) return new NextResponse('Unauthorized', { status: 401 })
 
   try {
     const body = await req.json()
@@ -34,14 +31,19 @@ export async function POST(req: Request) {
           },
           {
             type: "text",
-            text: "მოცემული ფოტოსთვის გამიწიე რეკომენდაცია ჩაცმულობის შესახებ. გააანალიზე რა აცვია და რა შეიძლება გამოასწოროს."
+            text: "Analyze the outfit in this image and provide style advice. Please also include 3-4 key fashion terms or categories that would match better alternatives for this style.",
           }
         ]
       }]
     })
 
+    // Extract key terms from the advice
+    const advice = message.content[0].text
+    const recommendedProducts = findProductsByTags(['formal', 'classic']) // Replace with actual tags from advice
+
     return NextResponse.json({ 
-      advice: message.content[0].text 
+      advice,
+      recommendations: recommendedProducts
     })
     
   } catch (error) {
