@@ -4,6 +4,8 @@ import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
 import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
+import { Product } from '@/lib/db'
+import { ProductRecommendations } from '@/components/ProductRecommendations'
 
 type WebcamRef = Webcam & {
   getScreenshot: () => string | null
@@ -14,6 +16,7 @@ export default function Home() {
   const [advice, setAdvice] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
   const [torchOn, setTorchOn] = useState<boolean>(false)
+  const [recommendations, setRecommendations] = useState<Product[]>([])
   const webcamRef = useRef<WebcamRef | null>(null)
 
   const capture = () => {
@@ -32,10 +35,17 @@ export default function Home() {
       })
       const data = await response.json()
       setAdvice(data.advice)
+      setRecommendations(data.recommendations)
     } catch (error) {
       setAdvice('Error analyzing image. Please try again.')
     }
     setLoading(false)
+  }
+
+  const reset = () => {
+    setImage(null)
+    setAdvice('')
+    setRecommendations([])
   }
 
   return (
@@ -98,15 +108,12 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Controls & Advice Section */}
+            {/* Controls & Results Section */}
             <div className={`mt-6 lg:mt-0 lg:w-96 transition-all ${image ? 'opacity-100' : 'opacity-0'}`}>
               <div className="space-y-6">
                 <div className="flex gap-4">
                   <button
-                    onClick={() => {
-                      setImage(null)
-                      setAdvice('')
-                    }}
+                    onClick={reset}
                     className="flex-1 py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-light transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200"
                     type="button"
                   >
@@ -134,13 +141,19 @@ export default function Home() {
                 </div>
                 
                 {advice && (
-                  <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-                    <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-                      <Wand2 className="text-blue-500" />
-                      Style Advice
-                    </h2>
-                    <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
-                  </div>
+                  <>
+                    <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+                      <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+                        <Wand2 className="text-blue-500" />
+                        Style Advice
+                      </h2>
+                      <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
+                    </div>
+                    
+                    {recommendations.length > 0 && (
+                      <ProductRecommendations products={recommendations} />
+                    )}
+                  </>
                 )}
               </div>
             </div>
