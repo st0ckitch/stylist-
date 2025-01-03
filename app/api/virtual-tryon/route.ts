@@ -1,5 +1,3 @@
-// app/api/virtual-tryon/route.ts
-
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 
@@ -8,6 +6,15 @@ export const runtime = 'nodejs'
 export async function POST(req: Request) {
   const { userId } = auth()
   if (!userId) return new NextResponse('Unauthorized', { status: 401 })
+
+  const VMODEL_API_KEY = process.env.VMODEL_API_KEY
+  if (!VMODEL_API_KEY) {
+    console.error('Missing VMODEL_API_KEY environment variable')
+    return new NextResponse(
+      JSON.stringify({ error: 'Server configuration error' }),
+      { status: 500 }
+    )
+  }
 
   try {
     const formData = await req.formData()
@@ -18,7 +25,7 @@ export async function POST(req: Request) {
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${process.env.VMODEL_API_KEY}`,
+          'Authorization': `Bearer ${VMODEL_API_KEY}`,
           'Accept': 'application/json'
         },
         body: formData
@@ -28,14 +35,20 @@ export async function POST(req: Request) {
     if (!createResponse.ok) {
       const errorText = await createResponse.text()
       console.error('Create job failed:', errorText)
-      throw new Error('Failed to create try-on job')
+      return NextResponse.json(
+        { error: 'Failed to create try-on job. Please check your image and try again.' },
+        { status: createResponse.status }
+      )
     }
 
     const createData = await createResponse.json()
     
     if (createData.code !== 100000 || !createData.result?.job_id) {
       console.error('Invalid create response:', createData)
-      throw new Error(createData.message?.en || 'Failed to create try-on job')
+      return NextResponse.json(
+        { error: createData.message?.en || 'Failed to create try-on job' },
+        { status: 400 }
+      )
     }
 
     // Poll for results
@@ -48,7 +61,7 @@ export async function POST(req: Request) {
         `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
         {
           headers: {
-            'Authorization': `Bearer ${process.env.VMODEL_API_KEY}`,
+            'Authorization': `Bearer ${VMODEL_API_KEY}`,
             'Accept': 'application/json'
           }
         }
@@ -57,7 +70,10 @@ export async function POST(req: Request) {
       if (!resultResponse.ok) {
         const errorText = await resultResponse.text()
         console.error('Get job failed:', errorText)
-        throw new Error('Failed to check job status')
+        return NextResponse.json(
+          { error: 'Failed to check job status' },
+          { status: resultResponse.status }
+        )
       }
 
       const resultData = await resultResponse.json()
@@ -68,8 +84,10 @@ export async function POST(req: Request) {
       }
 
       if (resultData.code !== 300102) { // Not in progress
-        console.error('Job failed:', resultData)
-        throw new Error(resultData.message?.en || 'Failed to generate image')
+        return NextResponse.json(
+          { error: resultData.message?.en || 'Failed to generate image' },
+          { status: 400 }
+        )
       }
 
       await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
@@ -77,14 +95,17 @@ export async function POST(req: Request) {
     }
 
     if (!result) {
-      throw new Error('Generation timed out')
+      return NextResponse.json(
+        { error: 'Generation timed out. Please try again.' },
+        { status: 408 }
+      )
     }
 
     return NextResponse.json(result)
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to process virtual try-on' },
+      { error: 'An unexpected error occurred. Please try again.' },
       { status: 500 }
     )
   }
