@@ -78,7 +78,7 @@ export default function Home() {
 
       if (!tryOnResponse.ok) {
         const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
-        throw new Error(errorData.error || \`Server error: \${tryOnResponse.status}\`)
+        throw new Error(errorData.error || 'Server error: ' + tryOnResponse.status)
       }
 
       const data = await tryOnResponse.json()
@@ -99,7 +99,6 @@ export default function Home() {
         const imageBlob = await imageResponse.blob()
         const blobUrl = URL.createObjectURL(imageBlob)
 
-        // Cleanup old URL if exists
         if (tryOnResult) {
           URL.revokeObjectURL(tryOnResult)
         }
