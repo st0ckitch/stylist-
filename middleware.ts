@@ -1,19 +1,14 @@
 import { authMiddleware } from "@clerk/nextjs";
- 
+
+// Explicitly set runtime
+export const runtime = 'nodejs'
+
 export default authMiddleware({
   publicRoutes: ["/"],
-  ignoredRoutes: ["/api/virtual-tryon"]  // Add this line to ignore virtual try-on route
+  debug: true
 });
- 
+
+// Update matcher to exclude problematic paths
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - api/virtual-tryon (virtual try-on API endpoint)
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     */
-    "/((?!api/virtual-tryon|_next/static|_next/image|favicon.ico).*)",
-  ],
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/((?!api|trpc))(.*)'],
 };
