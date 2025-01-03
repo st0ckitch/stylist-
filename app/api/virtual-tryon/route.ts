@@ -1,73 +1,43 @@
-import { NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs'
+const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file || !image) return
 
-export async function POST(req: Request) {
-  const { userId } = auth()
-  if (!userId) return new NextResponse('Unauthorized', { status: 401 })
+  setTryOnImage(file)
+  setTryOnLoading(true)
 
   try {
-    const formData = await req.formData()
+    const response = await fetch(image)
+    const blob = await response.blob()
+    const modelImage = new File([blob], 'model.jpg', { type: 'image/jpeg' })
+
+    const formData = new FormData()
+    formData.append('clothes_image', file)
+    formData.append('custom_model', modelImage)
+    formData.append('clothes_type', 'upper_body')
+
+    const tryOnResponse = await fetch('/api/virtual-tryon', {
+      method: 'POST',
+      body: formData,
+    })
+
+    if (!tryOnResponse.ok) {
+      throw new Error('Failed to process virtual try-on')
+    }
+
+    const data = await tryOnResponse.json()
+    if (data.error) {
+      throw new Error(data.error)
+    }
     
-    // Create the job
-    const createResponse = await fetch(
-      'https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/create-job',
-      {
-        method: 'POST',
-        headers: {
-          'Authorization': process.env.VMODEL_API_KEY || '',
-          'accept': 'application/json'
-        },
-        body: formData
-      }
-    )
-
-    const createData = await createResponse.json()
-    
-    if (createData.code !== 100000) {
-      throw new Error(createData.message?.en || 'Failed to create try-on job')
+    if (data.result?.output_image_url?.[0]) {
+      setTryOnResult(data.result.output_image_url[0])
+    } else {
+      throw new Error('No result image received')
     }
-
-    // Poll for results
-    const jobId = createData.result.job_id
-    let tries = 0
-    let result = null
-
-    while (tries < 30) { // Poll for up to 1 minute (30 * 2 seconds)
-      const resultResponse = await fetch(
-        `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
-        {
-          headers: {
-            'Authorization': process.env.VMODEL_API_KEY || '',
-            'accept': 'application/json'
-          }
-        }
-      )
-
-      const resultData = await resultResponse.json()
-      
-      if (resultData.code === 100000 && resultData.result?.output_image_url?.[0]) {
-        result = resultData
-        break
-      }
-
-      if (resultData.code !== 300102) { // Not in progress
-        throw new Error(resultData.message?.en || 'Failed to generate image')
-      }
-
-      await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2 seconds
-      tries++
-    }
-
-    if (!result) {
-      throw new Error('Generation timed out')
-    }
-
-    return NextResponse.json(result)
   } catch (error) {
-    console.error('Error:', error)
-    return NextResponse.json(
-      { error: 'Failed to process virtual try-on' },
-      { status: 500 }
-    )
+    console.error('Virtual try-on failed:', error)
+    // You might want to show an error message to the user here
+  } finally {
+    setTryOnLoading(false)
   }
 }
