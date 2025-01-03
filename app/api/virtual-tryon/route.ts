@@ -22,6 +22,11 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required files' }, { status: 400 })
     }
 
+    // Type guard to ensure we have File objects
+    if (!(customModel instanceof File) || !(clothesImage instanceof File)) {
+      return NextResponse.json({ error: 'Invalid file format' }, { status: 400 })
+    }
+
     // Create separate payload and files as per API documentation
     const payload = {
       clothes_type: 'upper_body',
@@ -33,8 +38,8 @@ export async function POST(req: Request) {
     const apiFormData = new FormData()
     
     // Add files with proper structure
-    apiFormData.append('clothes_image', clothesImage, 'clothing.jpg')
-    apiFormData.append('custom_model', customModel, 'model.jpg')
+    apiFormData.append('clothes_image', new Blob([clothesImage], { type: clothesImage.type }), 'clothing.jpg')
+    apiFormData.append('custom_model', new Blob([customModel], { type: customModel.type }), 'model.jpg')
     
     // Add payload fields
     Object.entries(payload).forEach(([key, value]) => {
@@ -64,59 +69,67 @@ export async function POST(req: Request) {
       )
     }
 
-    const createData = JSON.parse(responseText)
-    
-    if (createData.code !== 100000 || !createData.result?.job_id) {
-      return NextResponse.json(
-        { error: createData.message?.en || 'Failed to create job' },
-        { status: 400 }
-      )
-    }
-
-    // Poll for results
-    const jobId = createData.result.job_id
-    let tries = 0
-    let result = null
-
-    while (tries < 30) {
-      console.log(`Checking job ${jobId} status (attempt ${tries + 1})...`)
-      const resultResponse = await fetch(
-        `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
-        {
-          headers: {
-            'Authorization': VMODEL_API_KEY,
-            'Accept': 'application/json'
-          }
-        }
-      )
-
-      const resultData = await resultResponse.json()
-      console.log('Job status:', resultData)
+    try {
+      const createData = JSON.parse(responseText)
       
-      if (resultData.code === 100000 && resultData.result?.output_image_url?.[0]) {
-        result = resultData
-        break
-      }
-
-      if (resultData.code !== 300102) { // Not in progress
+      if (createData.code !== 100000 || !createData.result?.job_id) {
         return NextResponse.json(
-          { error: resultData.message?.en || 'Processing failed' },
+          { error: createData.message?.en || 'Failed to create job' },
           { status: 400 }
         )
       }
 
-      await new Promise(resolve => setTimeout(resolve, 2000))
-      tries++
-    }
+      // Poll for results
+      const jobId = createData.result.job_id
+      let tries = 0
+      let result = null
 
-    if (!result) {
+      while (tries < 30) {
+        console.log(`Checking job ${jobId} status (attempt ${tries + 1})...`)
+        const resultResponse = await fetch(
+          `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
+          {
+            headers: {
+              'Authorization': VMODEL_API_KEY,
+              'Accept': 'application/json'
+            }
+          }
+        )
+
+        const resultData = await resultResponse.json()
+        console.log('Job status:', resultData)
+        
+        if (resultData.code === 100000 && resultData.result?.output_image_url?.[0]) {
+          result = resultData
+          break
+        }
+
+        if (resultData.code !== 300102) { // Not in progress
+          return NextResponse.json(
+            { error: resultData.message?.en || 'Processing failed' },
+            { status: 400 }
+          )
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 2000))
+        tries++
+      }
+
+      if (!result) {
+        return NextResponse.json(
+          { error: 'Processing timed out' },
+          { status: 408 }
+        )
+      }
+
+      return NextResponse.json(result)
+    } catch (parseError) {
+      console.error('Failed to parse API response:', parseError)
       return NextResponse.json(
-        { error: 'Processing timed out' },
-        { status: 408 }
+        { error: 'Invalid API response' },
+        { status: 500 }
       )
     }
-
-    return NextResponse.json(result)
   } catch (error) {
     console.error('Error:', error)
     return NextResponse.json(
