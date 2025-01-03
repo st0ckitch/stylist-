@@ -20,6 +20,7 @@ export default function Home() {
   const [tryOnImage, setTryOnImage] = useState<File | null>(null)
   const [tryOnLoading, setTryOnLoading] = useState<boolean>(false)
   const [tryOnResult, setTryOnResult] = useState<string | null>(null)
+  const [tryOnError, setTryOnError] = useState<string | null>(null)
   const webcamRef = useRef<WebcamRef | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -39,7 +40,7 @@ export default function Home() {
       })
       const data = await response.json()
       setAdvice(data.advice)
-      setRecommendations(data.recommendations)
+      setRecommendations(data.recommendations || [])
     } catch (error) {
       setAdvice('Error analyzing image. Please try again.')
     }
@@ -47,54 +48,58 @@ export default function Home() {
   }
 
   const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (!file || !image) return
+    const file = e.target.files?.[0]
+    if (!file || !image) return
 
-  setTryOnImage(file)
-  setTryOnLoading(true)
+    setTryOnImage(file)
+    setTryOnLoading(true)
+    setTryOnError(null) // Clear previous errors
 
-  try {
-    const response = await fetch(image)
-    const blob = await response.blob()
-    const modelImage = new File([blob], 'model.jpg', { type: 'image/jpeg' })
+    try {
+      // Convert base64 image to File object
+      const response = await fetch(image)
+      const blob = await response.blob()
+      const modelImage = new File([blob], 'model.jpg', { type: 'image/jpeg' })
 
-    const formData = new FormData()
-    formData.append('clothes_image', file)
-    formData.append('custom_model', modelImage)
-    formData.append('clothes_type', 'upper_body')
+      const formData = new FormData()
+      formData.append('clothes_image', file)
+      formData.append('custom_model', modelImage)
+      formData.append('clothes_type', 'upper_body')
+      formData.append('forced_cutting', 'true')
 
-    const tryOnResponse = await fetch('/api/virtual-tryon', {
-      method: 'POST',
-      body: formData,
-    })
+      const tryOnResponse = await fetch('/api/virtual-tryon', {
+        method: 'POST',
+        body: formData,
+      })
 
-    if (!tryOnResponse.ok) {
-      throw new Error('Failed to process virtual try-on')
+      const data = await tryOnResponse.json()
+
+      if (!tryOnResponse.ok || data.error) {
+        throw new Error(data.error || 'Failed to process virtual try-on')
+      }
+      
+      if (data.result?.output_image_url?.[0]) {
+        setTryOnResult(data.result.output_image_url[0])
+        setTryOnError(null)
+      } else {
+        throw new Error('No result image received')
+      }
+    } catch (error) {
+      console.error('Virtual try-on failed:', error)
+      setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
+      setTryOnResult(null)
+    } finally {
+      setTryOnLoading(false)
     }
-
-    const data = await tryOnResponse.json()
-    if (data.error) {
-      throw new Error(data.error)
-    }
-    
-    if (data.result?.output_image_url?.[0]) {
-      setTryOnResult(data.result.output_image_url[0])
-    } else {
-      throw new Error('No result image received')
-    }
-  } catch (error) {
-    console.error('Virtual try-on failed:', error)
-    // You might want to show an error message to the user here
-  } finally {
-    setTryOnLoading(false)
   }
-}
+
   const reset = () => {
     setImage(null)
     setAdvice('')
     setRecommendations([])
     setTryOnImage(null)
     setTryOnResult(null)
+    setTryOnError(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
@@ -203,7 +208,7 @@ export default function Home() {
                   />
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={tryOnLoading}
+                    disabled={tryOnLoading || !image}
                     className="w-full py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-light transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200 disabled:opacity-50"
                     type="button"
                   >
@@ -219,6 +224,12 @@ export default function Home() {
                       </>
                     )}
                   </button>
+
+                  {tryOnError && (
+                    <div className="mt-2 text-sm text-red-500 text-center">
+                      {tryOnError}
+                    </div>
+                  )}
                 </div>
                 
                 {advice && (
