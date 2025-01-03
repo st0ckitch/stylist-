@@ -47,51 +47,49 @@ export default function Home() {
     setLoading(false)
   }
 
-  const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !image) return
+const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0]
+  if (!file || !image) return
 
-    setTryOnImage(file)
-    setTryOnLoading(true)
-    setTryOnError(null) // Clear previous errors
+  setTryOnImage(file)
+  setTryOnLoading(true)
+  setTryOnError(null)
 
-    try {
-      // Convert base64 image to File object
-      const response = await fetch(image)
-      const blob = await response.blob()
-      const modelImage = new File([blob], 'model.jpg', { type: 'image/jpeg' })
+  try {
+    // Convert base64 image to blob
+    const response = await fetch(image)
+    const modelBlob = await response.blob()
 
-      const formData = new FormData()
-      formData.append('clothes_image', file)
-      formData.append('custom_model', modelImage)
-      formData.append('clothes_type', 'upper_body')
-      formData.append('forced_cutting', 'true')
+    const formData = new FormData()
+    formData.append('clothes_image', file)
+    formData.append('custom_model', modelBlob)
 
-      const tryOnResponse = await fetch('/api/virtual-tryon', {
-        method: 'POST',
-        body: formData,
-      })
+    const tryOnResponse = await fetch('/api/virtual-tryon', {
+      method: 'POST',
+      body: formData
+    })
 
-      const data = await tryOnResponse.json()
-
-      if (!tryOnResponse.ok || data.error) {
-        throw new Error(data.error || 'Failed to process virtual try-on')
-      }
-      
-      if (data.result?.output_image_url?.[0]) {
-        setTryOnResult(data.result.output_image_url[0])
-        setTryOnError(null)
-      } else {
-        throw new Error('No result image received')
-      }
-    } catch (error) {
-      console.error('Virtual try-on failed:', error)
-      setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
-      setTryOnResult(null)
-    } finally {
-      setTryOnLoading(false)
+    if (!tryOnResponse.ok) {
+      const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
+      throw new Error(errorData.error || 'Failed to process request')
     }
+
+    const data = await tryOnResponse.json()
+    
+    if (data.result?.output_image_url?.[0]) {
+      setTryOnResult(data.result.output_image_url[0])
+      setTryOnError(null)
+    } else {
+      throw new Error('No result image received')
+    }
+  } catch (error) {
+    console.error('Virtual try-on failed:', error)
+    setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
+    setTryOnResult(null)
+  } finally {
+    setTryOnLoading(false)
   }
+}
 
   const reset = () => {
     setImage(null)
