@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { X, ShirtIcon, PersonStanding, Loader2 } from 'lucide-react'
 
 interface VirtualTryOnProps {
@@ -14,19 +14,25 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
   const [error, setError] = useState<string | null>(null)
   const modelInputRef = useRef<HTMLInputElement>(null)
   const clothingInputRef = useRef<HTMLInputElement>(null)
+  const resultImageRef = useRef<HTMLImageElement>(null)
+
+  useEffect(() => {
+    // Cleanup URLs when component unmounts
+    return () => {
+      if (result) URL.revokeObjectURL(result)
+    }
+  }, [])
 
   const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setModelImage(file)
+    if (e.target.files?.[0]) {
+      setModelImage(e.target.files[0])
       setError(null)
     }
   }
 
   const handleClothingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      setClothingImage(file)
+    if (e.target.files?.[0]) {
+      setClothingImage(e.target.files[0])
       setError(null)
     }
   }
@@ -56,16 +62,25 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
       })
 
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`)
+        const errorData = await response.json()
+        throw new Error(errorData.error || `Error: ${response.status}`)
       }
 
       const data = await response.json()
       
       if (data.result?.output_image_url?.[0]) {
-        setResult(data.result.output_image_url[0])
+        // Fetch the image and create a blob URL
+        const imageResponse = await fetch(data.result.output_image_url[0])
+        const blob = await imageResponse.blob()
+        const url = URL.createObjectURL(blob)
+        
+        // Revoke old URL if exists
+        if (result) URL.revokeObjectURL(result)
+        
+        setResult(url)
         setError(null)
       } else {
-        throw new Error(data.error || 'Failed to generate try-on image')
+        throw new Error('No result image received')
       }
     } catch (err) {
       console.error('Virtual try-on failed:', err)
@@ -76,11 +91,19 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
     }
   }
 
+  const handleImageError = () => {
+    setError('Failed to load result image')
+    if (result) {
+      URL.revokeObjectURL(result)
+      setResult(null)
+    }
+  }
+
   if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4">
+      <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4 overflow-y-auto max-h-[90vh]">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-light">Virtual Try-On</h2>
           <div className="flex gap-4">
@@ -102,7 +125,6 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Model Upload Section */}
           <div className="space-y-4">
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
               {modelImage ? (
@@ -137,7 +159,6 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
             </div>
           </div>
 
-          {/* Clothing Upload Section */}
           <div className="space-y-4">
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center">
               {clothingImage ? (
@@ -179,7 +200,6 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
           </div>
         )}
 
-        {/* Try On Button */}
         <button
           onClick={createTryOnJob}
           disabled={!modelImage || !clothingImage || loading}
@@ -197,14 +217,14 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
           )}
         </button>
 
-        {/* Result Section */}
         {result && (
           <div className="mt-6">
             <img 
-              src={result} 
+              ref={resultImageRef}
+              src={result}
               alt="Try-on result" 
               className="w-full rounded-xl"
-              onError={() => setError('Failed to load result image')}
+              onError={handleImageError}
             />
           </div>
         )}
