@@ -6,14 +6,12 @@ export const runtime = 'nodejs'
 export const maxDuration = 300
 export const preferredRegion = 'iad1'
 
-// Define error interface
 interface AbortError extends Error {
-  name: 'AbortError';
+  name: 'AbortError'
 }
 
-// Type guard for AbortError
 function isAbortError(error: unknown): error is AbortError {
-  return error instanceof Error && error.name === 'AbortError';
+  return error instanceof Error && error.name === 'AbortError'
 }
 
 export async function POST(req: Request) {
@@ -46,9 +44,10 @@ export async function POST(req: Request) {
     apiFormData.append('forced_cutting', 'true')
 
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 280000)
+    const timeoutId = setTimeout(() => controller.abort(), 280000) // 4.6 minutes
 
     try {
+      console.log('Creating virtual try-on job...')
       const createResponse = await fetch(url, {
         method: 'POST',
         headers: {
@@ -60,6 +59,7 @@ export async function POST(req: Request) {
 
       if (!createResponse.ok) {
         const errorText = await createResponse.text()
+        console.error('API Error:', errorText)
         return NextResponse.json({ 
           error: `API Error: ${createResponse.status} - ${errorText}` 
         }, { status: createResponse.status })
@@ -68,13 +68,16 @@ export async function POST(req: Request) {
       let createData
       try {
         createData = await createResponse.json()
+        console.log('Job created:', createData)
       } catch (e) {
+        console.error('Invalid JSON response:', e)
         return NextResponse.json({ 
           error: 'Invalid JSON response from API' 
         }, { status: 500 })
       }
 
       if (createData.code !== 100000 || !createData.result?.job_id) {
+        console.error('Failed to create job:', createData)
         return NextResponse.json({ 
           error: createData.message?.en || 'Failed to create job' 
         }, { status: 400 })
@@ -84,6 +87,7 @@ export async function POST(req: Request) {
       let tries = 0
       let result = null
 
+      console.log('Polling for job completion...')
       while (tries < 30) {
         const resultResponse = await fetch(
           `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
@@ -96,19 +100,23 @@ export async function POST(req: Request) {
         )
 
         if (!resultResponse.ok) {
+          console.error('Failed to check job status:', await resultResponse.text())
           return NextResponse.json({ 
             error: 'Failed to check job status' 
           }, { status: resultResponse.status })
         }
 
         const resultData = await resultResponse.json()
+        console.log('Job status check:', resultData)
         
         if (resultData.code === 100000 && resultData.result?.output_image_url?.[0]) {
           result = resultData
+          console.log('Job completed successfully')
           break
         }
 
-        if (resultData.code !== 300102) {
+        if (resultData.code !== 300102) { // 300102 is "processing" status
+          console.error('Processing failed:', resultData)
           return NextResponse.json({ 
             error: resultData.message?.en || 'Processing failed' 
           }, { status: 400 })
@@ -119,6 +127,7 @@ export async function POST(req: Request) {
       }
 
       if (!result) {
+        console.error('Processing timed out after', tries, 'attempts')
         return NextResponse.json({ 
           error: 'Processing timed out' 
         }, { status: 408 })
@@ -130,12 +139,13 @@ export async function POST(req: Request) {
     }
   } catch (error: unknown) {
     if (isAbortError(error)) {
+      console.error('Request timeout')
       return NextResponse.json({ 
         error: 'Request timeout' 
       }, { status: 408 })
     }
     
-    console.error('Error:', error)
+    console.error('Unexpected error:', error)
     return NextResponse.json({ 
       error: 'Failed to process request' 
     }, { status: 500 })
