@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Tshirt, Loader2 } from 'lucide-react'
+import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Shirt, Loader2 } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { Product } from '@/lib/db'
 import { ProductRecommendations } from '@/components/ProductRecommendations'
@@ -205,7 +205,7 @@ export default function Home() {
                       </>
                     ) : (
                       <>
-                        <Tshirt size={20} />
+                        <Shirt size={20} />
                         <span>Try On Clothes</span>
                       </>
                     )}
@@ -230,7 +230,7 @@ export default function Home() {
                     {tryOnResult && (
                       <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
                         <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-                          <Tshirt className="text-blue-500" />
+                          <Shirt className="text-blue-500" />
                           Virtual Try-On
                         </h2>
                         <img 
