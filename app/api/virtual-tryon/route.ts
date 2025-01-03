@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 
 export const runtime = 'nodejs'
-export const maxDuration = 300 // Set max duration to 5 minutes
+export const maxDuration = 60 // Set max duration to 5 minutes
 
 export async function POST(req: Request) {
   const { userId } = auth()
