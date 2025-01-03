@@ -24,6 +24,7 @@ export default function Home() {
   const webcamRef = useRef<WebcamRef | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  // Cleanup blob URLs
   useEffect(() => {
     return () => {
       if (tryOnResult) URL.revokeObjectURL(tryOnResult)
@@ -69,26 +70,42 @@ export default function Home() {
       formData.append('clothes_image', file)
       formData.append('custom_model', modelBlob)
 
+      console.log('Sending try-on request...')
       const tryOnResponse = await fetch('/api/virtual-tryon', {
         method: 'POST',
-        body: formData
+        body: formData,
       })
 
       if (!tryOnResponse.ok) {
         const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
-        throw new Error(errorData.error || 'Failed to process request')
+        throw new Error(errorData.error || \`Server error: \${tryOnResponse.status}\`)
       }
 
       const data = await tryOnResponse.json()
-      
+      console.log('Try-on response:', data)
+
       if (data.result?.output_image_url?.[0]) {
-        const imageResponse = await fetch(data.result.output_image_url[0])
-        const blob = await imageResponse.blob()
-        const url = URL.createObjectURL(blob)
-        
-        if (tryOnResult) URL.revokeObjectURL(tryOnResult)
-        
-        setTryOnResult(url)
+        const imageUrl = data.result.output_image_url[0]
+        console.log('Fetching result image from:', imageUrl)
+
+        const imageResponse = await fetch(imageUrl, {
+          cache: 'no-store'
+        })
+
+        if (!imageResponse.ok) {
+          throw new Error('Failed to fetch result image')
+        }
+
+        const imageBlob = await imageResponse.blob()
+        const blobUrl = URL.createObjectURL(imageBlob)
+
+        // Cleanup old URL if exists
+        if (tryOnResult) {
+          URL.revokeObjectURL(tryOnResult)
+        }
+
+        console.log('Created blob URL:', blobUrl)
+        setTryOnResult(blobUrl)
         setTryOnError(null)
       } else {
         throw new Error('No result image received')
@@ -96,7 +113,10 @@ export default function Home() {
     } catch (error) {
       console.error('Virtual try-on failed:', error)
       setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
-      setTryOnResult(null)
+      if (tryOnResult) {
+        URL.revokeObjectURL(tryOnResult)
+        setTryOnResult(null)
+      }
     } finally {
       setTryOnLoading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
@@ -123,6 +143,7 @@ export default function Home() {
       <SignedIn>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-12">
+            {/* Camera/Image Section */}
             <div className="flex-1 lg:max-w-2xl">
               <div className="relative rounded-2xl overflow-hidden bg-white shadow-lg">
                 {!image ? (
@@ -176,6 +197,7 @@ export default function Home() {
               </div>
             </div>
 
+            {/* Controls & Results Section */}
             <div className={`mt-6 lg:mt-0 lg:w-96 transition-all ${image ? 'opacity-100' : 'opacity-0'}`}>
               <div className="space-y-6">
                 <div className="flex gap-4">
