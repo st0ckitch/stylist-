@@ -1,31 +1,22 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 
-// Configure for Vercel Pro
+// Configure for Vercel Pro using the new Next.js 14 format
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 export const maxDuration = 300 // 5 minutes
-export const preferredRegion = 'iad1' // Configure your preferred region
-
-// Increase bodyParser limit
-export const config = {
-  api: {
-    bodyParser: {
-      sizeLimit: '10mb',
-    },
-    responseLimit: false,
-  },
-}
+export const preferredRegion = 'iad1'
 
 export async function POST(req: Request) {
+  const { userId } = auth()
+  if (!userId) return new NextResponse('Unauthorized', { status: 401 })
+
+  const VMODEL_API_KEY = process.env.VMODEL_API_KEY
+  if (!VMODEL_API_KEY) {
+    return NextResponse.json({ error: 'Configuration error' }, { status: 500 })
+  }
+
   try {
-    const { userId } = auth()
-    if (!userId) return new NextResponse('Unauthorized', { status: 401 })
-
-    const VMODEL_API_KEY = process.env.VMODEL_API_KEY
-    if (!VMODEL_API_KEY) {
-      return NextResponse.json({ error: 'Configuration error' }, { status: 500 })
-    }
-
     const formData = await req.formData()
     const customModel = formData.get('custom_model')
     const clothesImage = formData.get('clothes_image')
@@ -45,7 +36,7 @@ export async function POST(req: Request) {
     apiFormData.append('clothes_type', 'upper_body')
     apiFormData.append('forced_cutting', 'true')
 
-    // Add timeout for fetch requests
+    // Add timeout handling
     const controller = new AbortController()
     const timeoutId = setTimeout(() => controller.abort(), 280000) // 280 seconds
 
@@ -66,7 +57,14 @@ export async function POST(req: Request) {
         }, { status: createResponse.status })
       }
 
-      const createData = await createResponse.json()
+      let createData
+      try {
+        createData = await createResponse.json()
+      } catch (e) {
+        return NextResponse.json({ 
+          error: 'Invalid JSON response from API' 
+        }, { status: 500 })
+      }
 
       if (createData.code !== 100000 || !createData.result?.job_id) {
         return NextResponse.json({ 
