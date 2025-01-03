@@ -2,9 +2,18 @@ import { authMiddleware } from "@clerk/nextjs";
  
 export default authMiddleware({
   publicRoutes: ["/"],
-  // Instead of protectedRoutes, we'll protect everything except public routes
+  ignoredRoutes: ["/api/virtual-tryon"]  // Add this line to ignore virtual try-on route
 });
  
 export const config = {
-  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api/virtual-tryon (virtual try-on API endpoint)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api/virtual-tryon|_next/static|_next/image|favicon.ico).*)",
+  ],
 };
