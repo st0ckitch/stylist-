@@ -1,9 +1,7 @@
-'use client'
+import { useState, useRef } from 'react'
+import { X, ShirtIcon, PersonStanding, Loader2 } from 'lucide-react'
 
-import { useState } from 'react'
-import { Upload, X, ShirtIcon, PersonStanding, Loader2 } from 'lucide-react'
-
-type VirtualTryOnProps = {
+interface VirtualTryOnProps {
   isOpen: boolean
   onClose: () => void
 }
@@ -13,39 +11,66 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
   const [clothingImage, setClothingImage] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [result, setResult] = useState<string | null>(null)
-  
+  const [error, setError] = useState<string | null>(null)
+  const modelInputRef = useRef<HTMLInputElement>(null)
+  const clothingInputRef = useRef<HTMLInputElement>(null)
+
   const handleModelUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setModelImage(e.target.files[0])
+    const file = e.target.files?.[0]
+    if (file) {
+      setModelImage(file)
+      setError(null)
     }
   }
 
   const handleClothingUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.[0]) {
-      setClothingImage(e.target.files[0])
+    const file = e.target.files?.[0]
+    if (file) {
+      setClothingImage(file)
+      setError(null)
     }
+  }
+
+  const resetFiles = () => {
+    setModelImage(null)
+    setClothingImage(null)
+    setResult(null)
+    setError(null)
+    if (modelInputRef.current) modelInputRef.current.value = ''
+    if (clothingInputRef.current) clothingInputRef.current.value = ''
   }
 
   const createTryOnJob = async () => {
     if (!modelImage || !clothingImage) return
     setLoading(true)
+    setError(null)
 
     const formData = new FormData()
     formData.append('clothes_image', clothingImage)
     formData.append('custom_model', modelImage)
-    formData.append('clothes_type', 'upper_body')
 
     try {
       const response = await fetch('/api/virtual-tryon', {
         method: 'POST',
         body: formData,
       })
-      const data = await response.json()
-      if (data.result?.output_image_url) {
-        setResult(data.result.output_image_url[0])
+
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`)
       }
-    } catch (error) {
-      console.error('Error:', error)
+
+      const data = await response.json()
+      
+      if (data.result?.output_image_url?.[0]) {
+        setResult(data.result.output_image_url[0])
+        setError(null)
+      } else {
+        throw new Error(data.error || 'Failed to generate try-on image')
+      }
+    } catch (err) {
+      console.error('Virtual try-on failed:', err)
+      setError(err instanceof Error ? err.message : 'Failed to process virtual try-on')
+      setResult(null)
     } finally {
       setLoading(false)
     }
@@ -58,9 +83,22 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
       <div className="bg-white rounded-2xl p-6 max-w-2xl w-full mx-4">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-light">Virtual Try-On</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
-            <X size={24} />
-          </button>
+          <div className="flex gap-4">
+            <button 
+              onClick={resetFiles}
+              className="text-gray-500 hover:text-gray-700"
+              disabled={loading}
+            >
+              Reset
+            </button>
+            <button 
+              onClick={onClose} 
+              className="text-gray-500 hover:text-gray-700"
+              disabled={loading}
+            >
+              <X size={24} />
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -77,17 +115,20 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
                   <button 
                     onClick={() => setModelImage(null)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                    disabled={loading}
                   >
                     <X size={16} />
                   </button>
                 </div>
               ) : (
-                <label className="cursor-pointer">
+                <label className={`cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
+                    ref={modelInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleModelUpload}
                     className="hidden"
+                    disabled={loading}
                   />
                   <PersonStanding size={48} className="mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Upload your photo</p>
@@ -109,17 +150,20 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
                   <button 
                     onClick={() => setClothingImage(null)}
                     className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"
+                    disabled={loading}
                   >
                     <X size={16} />
                   </button>
                 </div>
               ) : (
-                <label className="cursor-pointer">
+                <label className={`cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <input
+                    ref={clothingInputRef}
                     type="file"
                     accept="image/*"
                     onChange={handleClothingUpload}
                     className="hidden"
+                    disabled={loading}
                   />
                   <ShirtIcon size={48} className="mx-auto mb-2 text-gray-400" />
                   <p className="text-sm text-gray-500">Upload clothing image</p>
@@ -129,11 +173,19 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
           </div>
         </div>
 
+        {error && (
+          <div className="mt-4 text-sm text-red-500 text-center">
+            {error}
+          </div>
+        )}
+
         {/* Try On Button */}
         <button
           onClick={createTryOnJob}
           disabled={!modelImage || !clothingImage || loading}
-          className="w-full mt-6 py-3 px-4 bg-blue-500 text-white rounded-xl font-light disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+          className="w-full mt-6 py-3 px-4 bg-blue-500 text-white rounded-xl font-light 
+                     disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2
+                     hover:bg-blue-600 transition-colors"
         >
           {loading ? (
             <>
@@ -148,7 +200,12 @@ export function VirtualTryOn({ isOpen, onClose }: VirtualTryOnProps) {
         {/* Result Section */}
         {result && (
           <div className="mt-6">
-            <img src={result} alt="Try-on result" className="w-full rounded-xl" />
+            <img 
+              src={result} 
+              alt="Try-on result" 
+              className="w-full rounded-xl"
+              onError={() => setError('Failed to load result image')}
+            />
           </div>
         )}
       </div>
