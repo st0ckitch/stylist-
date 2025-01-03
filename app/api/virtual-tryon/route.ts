@@ -1,11 +1,20 @@
 import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 
-// Configure for Vercel Pro using the new Next.js 14 format
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-export const maxDuration = 300 // 5 minutes
+export const maxDuration = 300
 export const preferredRegion = 'iad1'
+
+// Define error interface
+interface AbortError extends Error {
+  name: 'AbortError';
+}
+
+// Type guard for AbortError
+function isAbortError(error: unknown): error is AbortError {
+  return error instanceof Error && error.name === 'AbortError';
+}
 
 export async function POST(req: Request) {
   const { userId } = auth()
@@ -36,9 +45,8 @@ export async function POST(req: Request) {
     apiFormData.append('clothes_type', 'upper_body')
     apiFormData.append('forced_cutting', 'true')
 
-    // Add timeout handling
     const controller = new AbortController()
-    const timeoutId = setTimeout(() => controller.abort(), 280000) // 280 seconds
+    const timeoutId = setTimeout(() => controller.abort(), 280000)
 
     try {
       const createResponse = await fetch(url, {
@@ -72,7 +80,6 @@ export async function POST(req: Request) {
         }, { status: 400 })
       }
 
-      // Poll for results
       const jobId = createData.result.job_id
       let tries = 0
       let result = null
@@ -121,8 +128,8 @@ export async function POST(req: Request) {
     } finally {
       clearTimeout(timeoutId)
     }
-  } catch (error) {
-    if (error.name === 'AbortError') {
+  } catch (error: unknown) {
+    if (isAbortError(error)) {
       return NextResponse.json({ 
         error: 'Request timeout' 
       }, { status: 408 })
