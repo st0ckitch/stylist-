@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Webcam from 'react-webcam'
 import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Shirt, Loader2 } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
@@ -23,6 +23,12 @@ export default function Home() {
   const [tryOnError, setTryOnError] = useState<string | null>(null)
   const webcamRef = useRef<WebcamRef | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    return () => {
+      if (tryOnResult) URL.revokeObjectURL(tryOnResult)
+    }
+  }, [])
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot()
@@ -47,56 +53,65 @@ export default function Home() {
     setLoading(false)
   }
 
-const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-  const file = e.target.files?.[0]
-  if (!file || !image) return
+  const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !image) return
 
-  setTryOnImage(file)
-  setTryOnLoading(true)
-  setTryOnError(null)
+    setTryOnImage(file)
+    setTryOnLoading(true)
+    setTryOnError(null)
 
-  try {
-    // Convert base64 image to blob
-    const response = await fetch(image)
-    const modelBlob = await response.blob()
+    try {
+      const response = await fetch(image)
+      const modelBlob = await response.blob()
 
-    const formData = new FormData()
-    formData.append('clothes_image', file)
-    formData.append('custom_model', modelBlob)
+      const formData = new FormData()
+      formData.append('clothes_image', file)
+      formData.append('custom_model', modelBlob)
 
-    const tryOnResponse = await fetch('/api/virtual-tryon', {
-      method: 'POST',
-      body: formData
-    })
+      const tryOnResponse = await fetch('/api/virtual-tryon', {
+        method: 'POST',
+        body: formData
+      })
 
-    if (!tryOnResponse.ok) {
-      const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
-      throw new Error(errorData.error || 'Failed to process request')
+      if (!tryOnResponse.ok) {
+        const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
+        throw new Error(errorData.error || 'Failed to process request')
+      }
+
+      const data = await tryOnResponse.json()
+      
+      if (data.result?.output_image_url?.[0]) {
+        const imageResponse = await fetch(data.result.output_image_url[0])
+        const blob = await imageResponse.blob()
+        const url = URL.createObjectURL(blob)
+        
+        if (tryOnResult) URL.revokeObjectURL(tryOnResult)
+        
+        setTryOnResult(url)
+        setTryOnError(null)
+      } else {
+        throw new Error('No result image received')
+      }
+    } catch (error) {
+      console.error('Virtual try-on failed:', error)
+      setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
+      setTryOnResult(null)
+    } finally {
+      setTryOnLoading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
     }
-
-    const data = await tryOnResponse.json()
-    
-    if (data.result?.output_image_url?.[0]) {
-      setTryOnResult(data.result.output_image_url[0])
-      setTryOnError(null)
-    } else {
-      throw new Error('No result image received')
-    }
-  } catch (error) {
-    console.error('Virtual try-on failed:', error)
-    setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
-    setTryOnResult(null)
-  } finally {
-    setTryOnLoading(false)
   }
-}
 
   const reset = () => {
     setImage(null)
     setAdvice('')
     setRecommendations([])
     setTryOnImage(null)
-    setTryOnResult(null)
+    if (tryOnResult) {
+      URL.revokeObjectURL(tryOnResult)
+      setTryOnResult(null)
+    }
     setTryOnError(null)
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
@@ -108,7 +123,6 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
       <SignedIn>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-12">
-            {/* Camera/Image Section */}
             <div className="flex-1 lg:max-w-2xl">
               <div className="relative rounded-2xl overflow-hidden bg-white shadow-lg">
                 {!image ? (
@@ -126,7 +140,6 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                       }}
                     />
                     
-                    {/* Camera Controls */}
                     <div className="absolute bottom-8 inset-x-0 px-6">
                       <div className="flex items-center justify-center gap-8">
                         <button
@@ -163,7 +176,6 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
               </div>
             </div>
 
-            {/* Controls & Results Section */}
             <div className={`mt-6 lg:mt-0 lg:w-96 transition-all ${image ? 'opacity-100' : 'opacity-0'}`}>
               <div className="space-y-6">
                 <div className="flex gap-4">
@@ -195,7 +207,6 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                   </button>
                 </div>
 
-                {/* Virtual Try-On Button */}
                 <div className="relative">
                   <input
                     ref={fileInputRef}
@@ -244,7 +255,6 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                       <ProductRecommendations products={recommendations} />
                     )}
 
-                    {/* Virtual Try-On Result */}
                     {tryOnResult && (
                       <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
                         <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
@@ -255,6 +265,13 @@ const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
                           src={tryOnResult} 
                           alt="Virtual try-on result" 
                           className="w-full rounded-lg"
+                          onError={() => {
+                            setTryOnError('Failed to load result image')
+                            if (tryOnResult) {
+                              URL.revokeObjectURL(tryOnResult)
+                              setTryOnResult(null)
+                            }
+                          }}
                         />
                       </div>
                     )}
