@@ -187,7 +187,7 @@ export default function Home() {
                     type="button"
                   >
                     <RefreshCw size={20} />
-                    <span>Reset</span>
+                    <span>თავიდან</span>
                   </button>
                   <button
                     onClick={analyzeImage}
@@ -198,12 +198,12 @@ export default function Home() {
                     {loading ? (
                       <>
                         <Wand2 className="animate-spin" size={20} />
-                        <span>Analyzing...</span>
+                        <span>ანალიზი...</span>
                       </>
                     ) : (
                       <>
                         <Sparkles size={20} />
-                        <span>Get Advice</span>
+                        <span>რჩევის მიღება</span>
                       </>
                     )}
                   </button>
@@ -231,7 +231,7 @@ export default function Home() {
                     ) : (
                       <>
                         <Shirt size={20} />
-                        <span>Try On Clothes</span>
+                        <span>მორგება</span>
                       </>
                     )}
                   </button>
