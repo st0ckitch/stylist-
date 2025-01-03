@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import Webcam from 'react-webcam'
-import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon } from 'lucide-react'
+import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Tshirt, Loader2 } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { Product } from '@/lib/db'
 import { ProductRecommendations } from '@/components/ProductRecommendations'
@@ -17,7 +17,11 @@ export default function Home() {
   const [loading, setLoading] = useState<boolean>(false)
   const [torchOn, setTorchOn] = useState<boolean>(false)
   const [recommendations, setRecommendations] = useState<Product[]>([])
+  const [tryOnImage, setTryOnImage] = useState<File | null>(null)
+  const [tryOnLoading, setTryOnLoading] = useState<boolean>(false)
+  const [tryOnResult, setTryOnResult] = useState<string | null>(null)
   const webcamRef = useRef<WebcamRef | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const capture = () => {
     const imageSrc = webcamRef.current?.getScreenshot()
@@ -42,10 +46,49 @@ export default function Home() {
     setLoading(false)
   }
 
+  const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !image) return
+
+    setTryOnImage(file)
+    setTryOnLoading(true)
+
+    try {
+      // Convert captured image to file
+      const response = await fetch(image)
+      const blob = await response.blob()
+      const modelImage = new File([blob], 'model.jpg', { type: 'image/jpeg' })
+
+      const formData = new FormData()
+      formData.append('clothes_image', file)
+      formData.append('custom_model', modelImage)
+      formData.append('clothes_type', 'upper_body')
+
+      const tryOnResponse = await fetch('/api/virtual-tryon', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await tryOnResponse.json()
+      if (data.result?.output_image_url?.[0]) {
+        setTryOnResult(data.result.output_image_url[0])
+      }
+    } catch (error) {
+      console.error('Virtual try-on failed:', error)
+    } finally {
+      setTryOnLoading(false)
+    }
+  }
+
   const reset = () => {
     setImage(null)
     setAdvice('')
     setRecommendations([])
+    setTryOnImage(null)
+    setTryOnResult(null)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
   return (
@@ -139,6 +182,35 @@ export default function Home() {
                     )}
                   </button>
                 </div>
+
+                {/* Virtual Try-On Button */}
+                <div className="relative">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleTryOnUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={tryOnLoading}
+                    className="w-full py-4 px-6 rounded-xl bg-white hover:bg-gray-50 text-gray-700 font-light transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 border border-gray-200 disabled:opacity-50"
+                    type="button"
+                  >
+                    {tryOnLoading ? (
+                      <>
+                        <Loader2 className="animate-spin" size={20} />
+                        <span>Processing Try-On...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Tshirt size={20} />
+                        <span>Try On Clothes</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 
                 {advice && (
                   <>
@@ -152,6 +224,21 @@ export default function Home() {
                     
                     {recommendations.length > 0 && (
                       <ProductRecommendations products={recommendations} />
+                    )}
+
+                    {/* Virtual Try-On Result */}
+                    {tryOnResult && (
+                      <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+                        <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+                          <Tshirt className="text-blue-500" />
+                          Virtual Try-On
+                        </h2>
+                        <img 
+                          src={tryOnResult} 
+                          alt="Virtual try-on result" 
+                          className="w-full rounded-lg"
+                        />
+                      </div>
                     )}
                   </>
                 )}
