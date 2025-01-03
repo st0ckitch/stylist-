@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs'
 
 export const runtime = 'nodejs'
-export const maxDuration = 60 // Set max duration to 5 minutes
 
 export async function POST(req: Request) {
   const { userId } = auth()
@@ -10,8 +9,8 @@ export async function POST(req: Request) {
 
   const VMODEL_API_KEY = process.env.VMODEL_API_KEY
   if (!VMODEL_API_KEY) {
-    console.error('Missing VMODEL_API_KEY environment variable')
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+    console.error('Missing VMODEL_API_KEY')
+    return NextResponse.json({ error: 'Configuration error' }, { status: 500 })
   }
 
   try {
@@ -23,46 +22,53 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required files' }, { status: 400 })
     }
 
-    // Create a new FormData with proper structure
-    const apiFormData = new FormData()
-    apiFormData.append('custom_model', customModel)
-    apiFormData.append('clothes_image', clothesImage)
-    apiFormData.append('clothes_type', 'upper_body')
-    apiFormData.append('forced_cutting', 'true')
-    
-    console.log('Sending request to VModel API...')
+    // Create separate payload and files as per API documentation
+    const payload = {
+      clothes_type: 'upper_body',
+      forced_cutting: true,
+      prompt: 'Try on this clothing item'
+    }
 
+    // Create FormData for the API request
+    const apiFormData = new FormData()
+    
+    // Add files with proper structure
+    apiFormData.append('clothes_image', clothesImage, 'clothing.jpg')
+    apiFormData.append('custom_model', customModel, 'model.jpg')
+    
+    // Add payload fields
+    Object.entries(payload).forEach(([key, value]) => {
+      apiFormData.append(key, value.toString())
+    })
+
+    console.log('Sending request to VModel API...')
     const createResponse = await fetch(
       'https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/create-job',
       {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${VMODEL_API_KEY}`,
+          'Authorization': VMODEL_API_KEY,
+          'Accept': 'application/json'
         },
         body: apiFormData
       }
     )
 
+    const responseText = await createResponse.text()
+    console.log('API Response:', responseText)
+
     if (!createResponse.ok) {
-      const errorText = await createResponse.text()
-      console.error('Create job failed:', {
-        status: createResponse.status,
-        statusText: createResponse.statusText,
-        error: errorText
-      })
       return NextResponse.json(
-        { error: `Failed to create try-on job: ${createResponse.statusText}` },
+        { error: `API Error: ${responseText}` },
         { status: createResponse.status }
       )
     }
 
-    const createData = await createResponse.json()
-    console.log('Create job response:', createData)
+    const createData = JSON.parse(responseText)
     
     if (createData.code !== 100000 || !createData.result?.job_id) {
-      console.error('Invalid create response:', createData)
       return NextResponse.json(
-        { error: createData.message?.en || 'Invalid response from service' },
+        { error: createData.message?.en || 'Failed to create job' },
         { status: 400 }
       )
     }
@@ -73,34 +79,26 @@ export async function POST(req: Request) {
     let result = null
 
     while (tries < 30) {
-      console.log(`Checking job status (attempt ${tries + 1}/30)...`)
+      console.log(`Checking job ${jobId} status (attempt ${tries + 1})...`)
       const resultResponse = await fetch(
         `https://developer.vmodel.ai/api/vmodel/v1/ai-virtual-try-on/get-job/${jobId}`,
         {
           headers: {
-            'Authorization': `Bearer ${VMODEL_API_KEY}`,
+            'Authorization': VMODEL_API_KEY,
+            'Accept': 'application/json'
           }
         }
       )
 
-      if (!resultResponse.ok) {
-        const errorText = await resultResponse.text()
-        console.error('Get job failed:', errorText)
-        return NextResponse.json(
-          { error: 'Failed to check job status' },
-          { status: resultResponse.status }
-        )
-      }
-
       const resultData = await resultResponse.json()
-      console.log('Job status response:', resultData)
+      console.log('Job status:', resultData)
       
       if (resultData.code === 100000 && resultData.result?.output_image_url?.[0]) {
         result = resultData
         break
       }
 
-      if (resultData.code !== 300102) {
+      if (resultData.code !== 300102) { // Not in progress
         return NextResponse.json(
           { error: resultData.message?.en || 'Processing failed' },
           { status: 400 }
@@ -118,12 +116,11 @@ export async function POST(req: Request) {
       )
     }
 
-    console.log('Successfully processed image')
     return NextResponse.json(result)
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error('Error:', error)
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: 'Failed to process request' },
       { status: 500 }
     )
   }
