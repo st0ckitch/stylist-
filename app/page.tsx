@@ -1,40 +1,29 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import Webcam from 'react-webcam'
-import { Camera, RefreshCw, Wand2, Sparkles, Sun, Moon, Shirt, Loader2 } from 'lucide-react'
+import { Camera, RefreshCw, Wand2, Sparkles, Shirt, Loader2 } from 'lucide-react'
 import { SignedIn, SignedOut, SignInButton } from '@clerk/nextjs'
 import { Product } from '@/lib/db'
 import { ProductRecommendations } from '@/components/ProductRecommendations'
-
-type WebcamRef = Webcam & {
-  getScreenshot: () => string | null
-}
 
 export default function Home() {
   const [image, setImage] = useState<string | null>(null)
   const [advice, setAdvice] = useState<string>('')
   const [loading, setLoading] = useState<boolean>(false)
-  const [torchOn, setTorchOn] = useState<boolean>(false)
   const [recommendations, setRecommendations] = useState<Product[]>([])
   const [tryOnImage, setTryOnImage] = useState<File | null>(null)
   const [tryOnLoading, setTryOnLoading] = useState<boolean>(false)
   const [tryOnResult, setTryOnResult] = useState<string | null>(null)
   const [tryOnError, setTryOnError] = useState<string | null>(null)
-  const webcamRef = useRef<WebcamRef | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const mainImageInputRef = useRef<HTMLInputElement>(null)
 
-  // Cleanup blob URLs
   useEffect(() => {
     return () => {
       if (tryOnResult) URL.revokeObjectURL(tryOnResult)
+      if (image) URL.revokeObjectURL(image)
     }
   }, [])
-
-  const capture = () => {
-    const imageSrc = webcamRef.current?.getScreenshot()
-    if (imageSrc) setImage(imageSrc)
-  }
 
   const analyzeImage = async () => {
     if (!image) return
@@ -70,7 +59,6 @@ export default function Home() {
       formData.append('clothes_image', file)
       formData.append('custom_model', modelBlob)
 
-      console.log('Sending try-on request...')
       const tryOnResponse = await fetch('/api/virtual-tryon', {
         method: 'POST',
         body: formData,
@@ -103,7 +91,6 @@ export default function Home() {
           URL.revokeObjectURL(tryOnResult)
         }
 
-        console.log('Created blob URL:', blobUrl)
         setTryOnResult(blobUrl)
         setTryOnError(null)
       } else {
@@ -122,8 +109,22 @@ export default function Home() {
     }
   }
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (image) {
+        URL.revokeObjectURL(image)
+      }
+      const url = URL.createObjectURL(file)
+      setImage(url)
+    }
+  }
+
   const reset = () => {
-    setImage(null)
+    if (image) {
+      URL.revokeObjectURL(image)
+      setImage(null)
+    }
     setAdvice('')
     setRecommendations([])
     setTryOnImage(null)
@@ -135,6 +136,9 @@ export default function Home() {
     if (fileInputRef.current) {
       fileInputRef.current.value = ''
     }
+    if (mainImageInputRef.current) {
+      mainImageInputRef.current.value = ''
+    }
   }
 
   return (
@@ -142,53 +146,27 @@ export default function Home() {
       <SignedIn>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex flex-col lg:flex-row lg:items-start lg:gap-12">
-            {/* Camera/Image Section */}
             <div className="flex-1 lg:max-w-2xl">
               <div className="relative rounded-2xl overflow-hidden bg-white shadow-lg">
                 {!image ? (
-                  <div className="relative aspect-[4/5] lg:aspect-[4/3]">
-                    <Webcam
-                      ref={webcamRef}
-                      screenshotFormat="image/jpeg"
-                      className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
-                        torchOn ? 'webcam-lighting' : ''
-                      }`}
-                      videoConstraints={{
-                        facingMode: 'user',
-                        width: { ideal: 1920 },
-                        height: { ideal: 1080 }
-                      }}
-                    />
-                    
-                    <div className="absolute bottom-8 inset-x-0 px-6">
-                      <div className="flex items-center justify-center gap-8">
-                        <button
-                          onClick={() => setTorchOn(!torchOn)}
-                          className={`p-4 rounded-full transition-all transform hover:scale-105 ${
-                            torchOn 
-                              ? 'bg-yellow-500 text-white shadow-lg' 
-                              : 'bg-gray-800/30 text-white backdrop-blur-md hover:bg-gray-800/40'
-                          }`}
-                          type="button"
-                        >
-                          {torchOn ? <Sun size={24} /> : <Moon size={24} />}
-                        </button>
-                        
-                        <button
-                          onClick={capture}
-                          className="w-20 h-20 rounded-full border-4 border-white bg-blue-500 hover:bg-blue-600 text-white shadow-lg transform hover:scale-105 transition-all flex items-center justify-center"
-                          type="button"
-                        >
-                          <Camera size={32} />
-                        </button>
-                      </div>
-                    </div>
+                  <div className="relative aspect-[4/5] lg:aspect-[4/3] flex items-center justify-center">
+                    <label className="cursor-pointer flex flex-col items-center gap-4">
+                      <input
+                        ref={mainImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Camera size={48} className="text-gray-400" />
+                      <p className="text-sm text-gray-500">Upload your photo</p>
+                    </label>
                   </div>
                 ) : (
                   <div className="relative aspect-[4/5] lg:aspect-[4/3]">
                     <img 
                       src={image} 
-                      alt="captured" 
+                      alt="uploaded" 
                       className="absolute inset-0 w-full h-full object-cover"
                     />
                   </div>
@@ -196,7 +174,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Controls & Results Section */}
             <div className={`mt-6 lg:mt-0 lg:w-96 transition-all ${image ? 'opacity-100' : 'opacity-0'}`}>
               <div className="space-y-6">
                 <div className="flex gap-4">
@@ -206,7 +183,7 @@ export default function Home() {
                     type="button"
                   >
                     <RefreshCw size={20} />
-                    <span>Retake</span>
+                    <span>Reset</span>
                   </button>
                   <button
                     onClick={analyzeImage}
@@ -262,49 +239,48 @@ export default function Home() {
                   )}
                 </div>
                 
-{advice && (
-  <>
-    <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-      <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-        <Wand2 className="text-blue-500" />
-        Style Advice
-      </h2>
-      <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
-    </div>
-    
-    {recommendations.length > 0 && (
-      <ProductRecommendations products={recommendations} />
-    )}
-  </>
-)}
+                {advice && (
+                  <>
+                    <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+                      <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+                        <Wand2 className="text-blue-500" />
+                        Style Advice
+                      </h2>
+                      <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
+                    </div>
+                    
+                    {recommendations.length > 0 && (
+                      <ProductRecommendations products={recommendations} />
+                    )}
+                  </>
+                )}
 
-{/* Move the try-on result outside the advice condition */}
-{tryOnResult && (
-  <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-    <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-      <Shirt className="text-blue-500" />
-      Virtual Try-On Result
-    </h2>
-    <div className="relative">
-      <img 
-        src={tryOnResult} 
-        alt="Virtual try-on result" 
-        className="w-full rounded-lg shadow-md"
-        onError={() => {
-          setTryOnError('Failed to load result image')
-          if (tryOnResult) {
-            URL.revokeObjectURL(tryOnResult)
-            setTryOnResult(null)
-          }
-        }}
-      />
-      <div className="absolute inset-0 bg-black/50 flex items-center justify-center" 
-           style={{ display: tryOnLoading ? 'flex' : 'none' }}>
-        <Loader2 className="animate-spin text-white" size={32} />
-      </div>
-    </div>
-  </div>
-)}
+                {tryOnResult && (
+                  <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+                    <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+                      <Shirt className="text-blue-500" />
+                      Virtual Try-On Result
+                    </h2>
+                    <div className="relative">
+                      <img 
+                        src={tryOnResult} 
+                        alt="Virtual try-on result" 
+                        className="w-full rounded-lg shadow-md"
+                        onError={() => {
+                          setTryOnError('Failed to load result image')
+                          if (tryOnResult) {
+                            URL.revokeObjectURL(tryOnResult)
+                            setTryOnResult(null)
+                          }
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center" 
+                           style={{ display: tryOnLoading ? 'flex' : 'none' }}>
+                        <Loader2 className="animate-spin text-white" size={32} />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
