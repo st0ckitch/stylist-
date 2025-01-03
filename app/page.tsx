@@ -262,42 +262,49 @@ export default function Home() {
                   )}
                 </div>
                 
-                {advice && (
-                  <>
-                    <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-                      <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-                        <Wand2 className="text-blue-500" />
-                        Style Advice
-                      </h2>
-                      <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
-                    </div>
-                    
-                    {recommendations.length > 0 && (
-                      <ProductRecommendations products={recommendations} />
-                    )}
+{advice && (
+  <>
+    <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+      <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+        <Wand2 className="text-blue-500" />
+        Style Advice
+      </h2>
+      <p className="text-gray-600 leading-relaxed font-light">{advice}</p>
+    </div>
+    
+    {recommendations.length > 0 && (
+      <ProductRecommendations products={recommendations} />
+    )}
+  </>
+)}
 
-                    {tryOnResult && (
-                      <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
-                        <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
-                          <Shirt className="text-blue-500" />
-                          Virtual Try-On
-                        </h2>
-                        <img 
-                          src={tryOnResult} 
-                          alt="Virtual try-on result" 
-                          className="w-full rounded-lg"
-                          onError={() => {
-                            setTryOnError('Failed to load result image')
-                            if (tryOnResult) {
-                              URL.revokeObjectURL(tryOnResult)
-                              setTryOnResult(null)
-                            }
-                          }}
-                        />
-                      </div>
-                    )}
-                  </>
-                )}
+{/* Move the try-on result outside the advice condition */}
+{tryOnResult && (
+  <div className="p-6 rounded-xl bg-white shadow-lg border border-gray-200">
+    <h2 className="text-xl font-light text-gray-800 mb-4 flex items-center gap-2">
+      <Shirt className="text-blue-500" />
+      Virtual Try-On Result
+    </h2>
+    <div className="relative">
+      <img 
+        src={tryOnResult} 
+        alt="Virtual try-on result" 
+        className="w-full rounded-lg shadow-md"
+        onError={() => {
+          setTryOnError('Failed to load result image')
+          if (tryOnResult) {
+            URL.revokeObjectURL(tryOnResult)
+            setTryOnResult(null)
+          }
+        }}
+      />
+      <div className="absolute inset-0 bg-black/50 flex items-center justify-center" 
+           style={{ display: tryOnLoading ? 'flex' : 'none' }}>
+        <Loader2 className="animate-spin text-white" size={32} />
+      </div>
+    </div>
+  </div>
+)}
               </div>
             </div>
           </div>
