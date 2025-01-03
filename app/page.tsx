@@ -149,6 +149,22 @@ export default function Home() {
             <div className="flex-1 lg:max-w-2xl">
               <div className="relative rounded-2xl overflow-hidden bg-white shadow-lg">
                 {!image ? (
+                  <div className="relative aspect-[4/5] lg:aspect-[4/3] flex flex-col items-center justify-center p-6">
+                    <label className="cursor-pointer flex flex-col items-center gap-4">
+                      <input
+                        ref={mainImageInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        className="hidden"
+                      />
+                      <Camera size={48} className="text-gray-400" />
+                      <p className="text-sm text-gray-500">Upload your photo</p>
+                    </label>
+                    <p className="text-xs text-gray-400 mt-4 text-center max-w-sm">
+                      ატვირთეთ მხოლოდ მაღალი ხარისხის ფოტოები, პირდაპირი რაკურსით. არ ატვირთოთ პროფილში გადაღებული სურათები*
+                    </p>
+                  </div>
                   <div className="relative aspect-[4/5] lg:aspect-[4/3] flex items-center justify-center">
                     <label className="cursor-pointer flex flex-col items-center gap-4">
                       <input
