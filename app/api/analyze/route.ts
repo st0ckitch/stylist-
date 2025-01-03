@@ -31,7 +31,7 @@ export async function POST(req: Request) {
           },
           {
             type: "text",
-            text: "Analyze the outfit in this image and provide style advice. Please also include 3-4 key fashion terms or categories that would match better alternatives for this style.",
+            text: "მოცემული ფოტოსთვის გამიწიე რეკომენდაცია ჩაცმულობის შესახებ. გააანალიზე რა აცვია და რა შეიძლება გამოასწოროს. დამატებით დამიწერე 3-4 საკვანძო სიტყვა, რომელიც აღწერს მის სტილს ან რა სტილის ტანსაცმელიც შეიძლება მოუხდეს.",
           }
         ]
       }]
@@ -39,7 +39,9 @@ export async function POST(req: Request) {
 
     // Extract key terms from the advice
     const advice = message.content[0].text
-    const recommendedProducts = findProductsByTags(['formal', 'classic']) // Replace with actual tags from advice
+    // Extract tags from AI response - you might want to implement more sophisticated parsing
+    const tags = ['formal', 'classic'] // Replace with actual extracted tags
+    const recommendedProducts = findProductsByTags(tags)
 
     return NextResponse.json({ 
       advice,
