@@ -54,55 +54,70 @@ export default function Home() {
   }
 
   const handleTryOnUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file || !image) return
+  const file = e.target.files?.[0]
+  if (!file || !image) return
 
-    setTryOnImage(file)
-    setTryOnLoading(true)
-    setTryOnError(null)
+  setTryOnImage(file)
+  setTryOnLoading(true)
+  setTryOnError(null)
+  
+  try {
+    const response = await fetch(image)
+    const modelBlob = await response.blob()
 
-    try {
-      const response = await fetch(image)
-      const modelBlob = await response.blob()
+    const formData = new FormData()
+    formData.append('clothes_image', file)
+    formData.append('custom_model', modelBlob)
 
-      const formData = new FormData()
-      formData.append('clothes_image', file)
-      formData.append('custom_model', modelBlob)
+    const tryOnResponse = await fetch('/api/virtual-tryon', {
+      method: 'POST',
+      body: formData
+    })
 
-      const tryOnResponse = await fetch('/api/virtual-tryon', {
-        method: 'POST',
-        body: formData
-      })
+    if (!tryOnResponse.ok) {
+      throw new Error(\`Error: \${tryOnResponse.status}\`)
+    }
 
-      if (!tryOnResponse.ok) {
-        const errorData = await tryOnResponse.json().catch(() => ({ error: 'Network error' }))
-        throw new Error(errorData.error || 'Failed to process request')
-      }
-
-      const data = await tryOnResponse.json()
+    const data = await tryOnResponse.json()
+    
+    if (data.result?.output_image_url?.[0]) {
+      // Fetch the actual image and create a blob URL
+      const imageUrl = data.result.output_image_url[0]
+      console.log('Fetching image from:', imageUrl)
       
-      if (data.result?.output_image_url?.[0]) {
-        const imageResponse = await fetch(data.result.output_image_url[0])
-        const blob = await imageResponse.blob()
-        const url = URL.createObjectURL(blob)
-        
-        if (tryOnResult) URL.revokeObjectURL(tryOnResult)
-        
-        setTryOnResult(url)
-        setTryOnError(null)
-      } else {
-        throw new Error('No result image received')
+      const imageResponse = await fetch(imageUrl)
+      if (!imageResponse.ok) {
+        throw new Error('Failed to fetch result image')
       }
-    } catch (error) {
-      console.error('Virtual try-on failed:', error)
-      setTryOnError(error instanceof Error ? error.message : 'Failed to process virtual try-on')
+      
+      const imageBlob = await imageResponse.blob()
+      const blobUrl = URL.createObjectURL(imageBlob)
+      
+      // Cleanup old URL if exists
+      if (tryOnResult) {
+        URL.revokeObjectURL(tryOnResult)
+      }
+      
+      console.log('Created blob URL:', blobUrl)
+      setTryOnResult(blobUrl)
+      setTryOnError(null)
+    } else {
+      throw new Error('No result image URL received')
+    }
+  } catch (error) {
+    console.error('Virtual try-on failed:', error)
+    setTryOnError(error instanceof Error ? error.message : 'Failed to process try-on')
+    if (tryOnResult) {
+      URL.revokeObjectURL(tryOnResult)
       setTryOnResult(null)
-    } finally {
-      setTryOnLoading(false)
-      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  } finally {
+    setTryOnLoading(false)
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
     }
   }
-
+}
   const reset = () => {
     setImage(null)
     setAdvice('')
